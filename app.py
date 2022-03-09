@@ -7,6 +7,7 @@ import datetime, requests, os, logging, time
 load_dotenv()
 
 closed = False
+contacts = []
 
 url = 'https://nationalhighways.co.uk/travel-updates/the-severn-bridges/'
 
@@ -22,15 +23,15 @@ def log(msg):
     logger = logging.getLogger("Rotating Log")
     logger.setLevel(logging.INFO)
     
-    handler = RotatingFileHandler(os.getenv('LOG_PATH'), maxBytes=20, backupCount=5)
+    handler = RotatingFileHandler(os.getenv('LOG_PATH'), maxBytes=100000000, backupCount=5)
     logger.addHandler(handler)
     
-    logger.info("[{}] {}".format(str(datetime.datetime.now)), msg)
+    logger.info("[{}] {}".format(str(datetime.datetime.now()), msg))
     time.sleep(1)
     logger.info("[{}] Message Sent.".format(str(datetime.datetime.now())))
 
 def notify(msg):
-    msg = '''
+    body = '''
     [ALERT]
 
     Severn Bridge Status: "{}"
@@ -40,9 +41,10 @@ def notify(msg):
     auth_token = os.environ['TWILIO_AUTH_TOKEN']
     client = Client(account_sid, auth_token)
 
-    message = client.messages.create(body=msg, from_='+15017122661', to='+15558675310')
-    log(msg)
-    print(message.sid)
+    for number in contacts:
+        message = client.messages.create(body=body, from_=os.getenv('TWILIO_PHONE'), to=number)
+        log(msg)
+        print(message.sid)
 
 if 'closed' in old_bridge.lower():
     if closed == True: # if was already closed do not message again
